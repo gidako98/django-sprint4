@@ -25,7 +25,7 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'django_bootstrap5',
     'users.apps.UsersConfig',
-    'core'
+    'core',
 ]
 
 LOGIN_REDIRECT_URL = 'blog:index'

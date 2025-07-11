@@ -35,7 +35,7 @@ class EditDeleteSuccessUrlMixin:
     def get_success_url(self):
         return reverse(
             'blog:profile',
-            kwargs={'username': self.request.user.username}
+            kwargs={'username': self.request.user.username},
         )
 
 
@@ -68,7 +68,7 @@ def get_visible_posts_for_user(user=None, queryset=None, comment_count=False):
     if queryset is None:
         queryset = Post.objects.all()
     queryset = queryset.select_related(
-        'category', 'location', 'author'
+        'category', 'location', 'author',
     ).order_by(
         '-pub_date'
     )

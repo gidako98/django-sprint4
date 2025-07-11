@@ -32,11 +32,11 @@ def category_posts(request, category_slug):
     category = get_object_or_404(
         Category,
         slug=category_slug,
-        is_published=True
+        is_published=True,
     )
     posts = get_visible_posts_for_user(
         queryset=category.post_category.all(),
-        comment_count=True
+        comment_count=True,
     )
     page_obj = paginator(request, posts)
     context = {
@@ -57,7 +57,7 @@ def create_edit_post(request, post_id=None):
     form = CreatePostForm(
         request.POST or None,
         files=request.FILES or None,
-        instance=post
+        instance=post,
     )
     if form.is_valid():
         new_post = form.save(commit=False)
@@ -133,7 +133,7 @@ class ProfileDetailView(DetailView):
         visible_posts = get_visible_posts_for_user(
             user=self.request.user,
             queryset=author_posts,
-            comment_count=True
+            comment_count=True,
         ).order_by('-pub_date')
         page_obj = paginator(self.request, visible_posts)
         context.update({
@@ -161,7 +161,7 @@ class EditProfileView(
 class EditCommentView(
     LoginRequiredMixin,
     AuthorOrAdminRequiredMixin,
-    CommentSuccessUrlMixin, UpdateView
+    CommentSuccessUrlMixin, UpdateView,
 ):
     """CBV редактирования комментария."""
 
@@ -174,7 +174,7 @@ class DeleteCommentView(
         LoginRequiredMixin,
         AuthorOrAdminRequiredMixin,
         CommentSuccessUrlMixin,
-        DeleteView
+        DeleteView,
 ):
     """CBV удаления комментария"""
 

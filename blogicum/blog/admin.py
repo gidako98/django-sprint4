@@ -37,16 +37,16 @@ class PostAdmin(PublishActionAdminPanelMixin, admin.ModelAdmin):
 
     list_display = (
         'title', 'shorted_text', 'author', 'category',
-        'location', 'is_published', 'pub_date'
+        'location', 'is_published', 'pub_date',
     )
     search_fields = [
         'title__icontains',
         'author__username',
         'location__name',
-        'category__title'
+        'category__title',
     ]
     list_filter = (
-        'is_published', 'author', 'category', 'location', 'pub_date'
+        'is_published', 'author', 'category', 'location', 'pub_date',
     )
     list_editable = ('is_published',)
     actions = ['published', 'unpublished']
