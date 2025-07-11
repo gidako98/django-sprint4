@@ -1,119 +1,123 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
-from django.utils import timezone
+from django.urls import reverse
 
-from core.models import CoreModel, TitleModel
+from abstract.models import PublishedModel
+from blog.constants import NAME_SLICE
 
-
-USER = get_user_model()
-M_CHAR_LENGHT = 256
-
-
-class IsPublished(models.Manager):
-    def published(self):
-        return super().get_queryset().filter(
-            pub_date__lte=timezone.now(),
-            is_published=True,
-        )
+User = get_user_model()
 
 
-class Category(CoreModel, TitleModel):
-    description = models.TextField(blank=False, verbose_name='Описание')
-    slug = models.SlugField(
-        unique=True,
-        verbose_name='Идентификатор',
-        help_text='Идентификатор страницы для URL; '
-        'разрешены символы латиницы, цифры, дефис и подчёркивание.'
-    )
+class Location(PublishedModel):
+    """Модель "Местоположение"."""
 
-    objects = IsPublished()
-
-    class Meta:
-        verbose_name = 'категория'
-        verbose_name_plural = 'Категории'
-        ordering = ('-id',)
-
-    def __str__(self):
-        return self.title
-
-
-class Location(CoreModel):
-    name = models.CharField(
-        max_length=M_CHAR_LENGHT,
-        blank=False,
-        default='Планета Земля',
-        verbose_name="Название места",
-    )
-
-    objects = IsPublished()
+    name = models.CharField('Название места', max_length=256)
 
     class Meta:
         verbose_name = 'местоположение'
         verbose_name_plural = 'Местоположения'
-        ordering = ('-id',)
 
     def __str__(self):
-        return self.name
+        return self.name[:NAME_SLICE]
 
 
-class Post(CoreModel, TitleModel):
-    text = models.TextField(blank=False, verbose_name='Текст')
-    image = models.ImageField('Фото', upload_to='posts_images', blank=True)
-    pub_date = models.DateTimeField(
-        verbose_name='Дата и время публикации',
-        help_text='Если установить дату и время в будущем '
-        '— можно делать отложенные публикации.',
+class Category(PublishedModel):
+    """Модель "Категория"."""
+
+    title = models.CharField('Заголовок', max_length=256)
+    description = models.TextField('Описание')
+    slug = models.SlugField(
+        'Идентификатор',
+        unique=True,
+        help_text=(
+            'Идентификатор страницы для URL; разрешены символы '
+            'латиницы, цифры, дефис и подчёркивание.'
+        )
     )
-    category = models.ForeignKey(
-        Category,
-        on_delete=models.CASCADE,
-        null=True,
-        verbose_name='Категория',
+
+    class Meta:
+        verbose_name = 'категория'
+        verbose_name_plural = 'Категории'
+
+    def __str__(self):
+        return self.title[:NAME_SLICE]
+    posts = models.ManyToManyField(
+        'Post',
+        related_name='category_posts',
+        verbose_name='Посты категории',
+        blank=True
+    )
+
+
+class Post(PublishedModel):
+    """Модель "Публикация"."""
+
+    title = models.CharField('Заголовок', max_length=256)
+    text = models.TextField('Текст')
+    pub_date = models.DateTimeField(
+        'Дата и время публикации',
+        help_text=(
+            'Если установить дату и время в будущем — можно делать '
+            'отложенные публикации.'
+        ),
     )
     author = models.ForeignKey(
-        USER,
-        on_delete=models.CASCADE,
-        null=False,
+        settings.AUTH_USER_MODEL,
         verbose_name='Автор публикации',
+        on_delete=models.CASCADE,
     )
     location = models.ForeignKey(
         Location,
+        verbose_name='Местоположение',
         on_delete=models.SET_NULL,
         null=True,
-        verbose_name='Местоположение',
+        blank=True,
     )
-
-    objects = IsPublished()
+    category = models.ForeignKey(
+        Category,
+        verbose_name='Категория',
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='post_category',
+    )
+    image = models.ImageField('Фото', upload_to='posts_images', blank=True)
 
     class Meta:
+        default_related_name = 'posts'
         verbose_name = 'публикация'
         verbose_name_plural = 'Публикации'
-        ordering = ('-id',)
+        ordering = ('-pub_date',)
 
     def __str__(self):
-        return self.title
+        return self.title[:NAME_SLICE]
+
+    def get_absolute_url(self):
+        return reverse('blog:post_detail', kwargs={'post_id': self.pk})
 
 
-class Comment(CoreModel):
-    text = models.TextField(blank=False, verbose_name='Текст комментария')
-    author = models.ForeignKey(
-        USER,
-        on_delete=models.CASCADE,
-        null=False,
-        verbose_name='Автор комментария',
-    )
+class Comment(PublishedModel):
+    """Модель "Комментарий"."""
+
+    text = models.TextField('Комментарий')
     post = models.ForeignKey(
         Post,
+        verbose_name='Публикация',
         on_delete=models.CASCADE,
-        null=False,
-        verbose_name='Комментируемый пост',
+        related_name='comments',
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True, verbose_name='Создано'
+    )
+    author = models.ForeignKey(
+        User, on_delete=models.CASCADE, verbose_name='Автор',
+        related_name='comments',
     )
 
     class Meta:
+        ordering = ('created_at',)
         verbose_name = 'комментарий'
         verbose_name_plural = 'Комментарии'
-        # От старых к новым как написано в задании!
-        ordering = ('author', '-created_at',)
 
     def __str__(self):
-        return self.text
+        return f"Комментарий #{self.id} к посту '{self.post}'"
